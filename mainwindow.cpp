@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "filedrophandler.h"
 #include "ffmpeghandler.h"
@@ -14,6 +14,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Initialize Variables
     useDefaultTemplate = false;
+    errorOccured = false;
+
+    // Assign first order model directory
+    firstOrderModelDir = QDir("C:\\Users\\RedRN\\Documents\\DamedaneGenerator\\BatchDamedane\\first-order-model");
 
     // Connect generate button to function
     connect(ui->generateButton, SIGNAL(clicked()), this, SLOT(startGenerating()));
@@ -30,15 +34,11 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::startGenerating()
 {
-    // Reset Indication
-    ui->generateProgressBar->setValue(0);
-    ui->statusIndicatorLabel->setText("Status: Generating deepfake...");
-
     // Read user input
     // Trim the string to get rid of any \r, \n or whitespaces
     QString drivingVideoPath = ui->drivingVideoInput->text().trimmed();
     QString sourceImagePath = ui->sourceImageInput->text().trimmed();
-    QString workingDirectoryPath = ui->outputDirInput->text().trimmed();
+    QString workingDirectoryPath = ui->outputDirInput->text().trimmed();    
 
     // Use default template if checked
     if(useDefaultTemplate)
@@ -53,6 +53,19 @@ void MainWindow::startGenerating()
         return;
     }
 
+    // Convert path to QFileInfo and QDir
+    // This should handle backward and forward slashes and other potential problems
+    // This also makes extra functions available
+    drivingVideoFile = QFileInfo(drivingVideoPath);
+    sourceImageFile = QFileInfo(sourceImagePath);
+    workingDir = QDir(workingDirectoryPath);
+
+    // Reset Indication
+    ui->generateProgressBar->setValue(0);
+    ui->statusIndicatorLabel->setText("Status: Generating deepfake...");
+    errorOccured = false;
+
+
     // Create Process
     demo = new QProcess(this);
 
@@ -65,12 +78,12 @@ void MainWindow::startGenerating()
     // TODO: Choose unused filename
     QString program = "python.exe";
     QStringList argv;
-    argv << "C:\\Users\\RedRN\\Documents\\DamedaneGenerator\\BatchDamedane\\first-order-model\\demo.py"
-         << "--config" << "C:\\Users\\RedRN\\Documents\\DamedaneGenerator\\BatchDamedane\\first-order-model\\config\\vox-256.yaml"
-         << "--driving_video" << drivingVideoPath
-         << "--source_image" << sourceImagePath
-         << "--result_video" << workingDirectoryPath.append("\\result.mp4")
-         << "--checkpoint" << "C:\\Users\\RedRN\\Documents\\DamedaneGenerator\\vox-cpk.pth.tar"
+    argv << firstOrderModelDir.absoluteFilePath("demo.py")
+         << "--config" << firstOrderModelDir.absoluteFilePath("config/vox-256.yaml")
+         << "--driving_video" << drivingVideoFile.absoluteFilePath()
+         << "--source_image" << sourceImageFile.absoluteFilePath()
+         << "--result_video" << workingDir.absoluteFilePath(sourceImageFile.baseName() + "_temp_deepfakemp4")
+         << "--checkpoint" << firstOrderModelDir.absoluteFilePath("vox-cpk.pth.tar")
          << "--relative"
          << "--adapt_scale";
 
@@ -79,11 +92,15 @@ void MainWindow::startGenerating()
     connect(demo, SIGNAL(readyReadStandardError()), this, SLOT(processOutput()));
     demo->setReadChannel(QProcess::StandardError);
 
+    // Prepare for error handling
+    connect(demo, SIGNAL(errorOccurred(QProcess::ProcessError)), this, SLOT(handleError(QProcess::ProcessError)));
+
+
     // Start external process
     demo->start(program, argv);
 
     // Add audio after process finished
-    connect(demo, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(generateFinished()));
+    connect(demo, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(generateFinished(int, QProcess::ExitStatus)));
 }
 
 void MainWindow::processOutput()
@@ -106,27 +123,35 @@ void MainWindow::processOutput()
 
 
 // TODO: Handle when process exited with error
-void MainWindow::generateFinished()
+void MainWindow::generateFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    QString templatePath = ui->drivingVideoInput->text().trimmed();
-    QString workingDir = ui->outputDirInput->text().trimmed();
-    // FIXME: forward and backward slashes could be different in different scenarios
-    QString sourcePath = ui->outputDirInput->text().trimmed().append("\\result.mp4");
-
-    // Use default template if checked
-    if(useDefaultTemplate)
+    // Error handling
+    if(errorOccured)
     {
-        templatePath = "C:\\Users\\RedRN\\Documents\\DamedaneGenerator\\bakamitai_template.mp4";
+        qDebug() << demo->errorString();
+        return;
     }
+
+    QString sourcePath = workingDir.absoluteFilePath(sourceImageFile.baseName() + "_temp_deepfake.mp4");
 
     // Set status indicator
     ui->statusIndicatorLabel->setText(ui->statusIndicatorLabel->text() + "Done. Remuxing...");
 
-    FFmpegHandler ffmpeg = FFmpegHandler();
-    ffmpeg.addTemplateSoundToSource(templatePath, sourcePath, workingDir);
+    FFmpegHandler *ffmpeg = new FFmpegHandler(this);
+    ffmpeg->addTemplateSoundToSource(drivingVideoFile.absoluteFilePath(), sourcePath, workingDir.absolutePath());
 
     // Set status indicator
     ui->statusIndicatorLabel->setText(ui->statusIndicatorLabel->text() + "All Done");
+}
+
+// Handle Error from the process
+// FIXME: Process does not raise error
+// TODO: Use library instead of calling process
+void MainWindow::handleError(QProcess::ProcessError error)
+{
+    errorOccured = true;
+    qDebug() << error;
+    qDebug() << demo->readAllStandardError();
 }
 
 void MainWindow::defaultTemplateStateChanged(int state)

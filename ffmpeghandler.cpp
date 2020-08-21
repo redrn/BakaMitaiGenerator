@@ -3,14 +3,15 @@
 #include <QDebug>
 #include <QFile>
 
-FFmpegHandler::FFmpegHandler()
+FFmpegHandler::FFmpegHandler(QObject *parent) : QObject(parent)
 {
 
 }
 
+
 void FFmpegHandler::addTemplateSoundToSource(QString templatePath, QString sourcePath, QString workingDir)
 {
-    QProcess *ffmpeg = new QProcess();
+    ffmpeg = new QProcess();
 
     // FIXME: Doesn't seem to work, still need to manually set working directory
     ffmpeg->setWorkingDirectory(workingDir);
@@ -24,6 +25,9 @@ void FFmpegHandler::addTemplateSoundToSource(QString templatePath, QString sourc
         nameIndex++;
     }
 
+    // Prepare for error handling
+    connect(ffmpeg, SIGNAL(errorOccurred(QProcess::ProcessError)), this, SLOT(handleError(QProcess::ProcessError)));
+
     // Combine audio from template and video from source
     ffmpeg->start("ffmpeg", QStringList() << "-i" << templatePath << "-i" << sourcePath
                                             << "-map" << "0:a" << "-map" << "1:v"
@@ -34,4 +38,11 @@ void FFmpegHandler::addTemplateSoundToSource(QString templatePath, QString sourc
 
     // Remove source, which only serves as temporary file
     QFile::remove(sourcePath);
+}
+
+// Error Handling
+void FFmpegHandler::handleError(QProcess::ProcessError error)
+{
+    qDebug() << error;
+    qDebug() << ffmpeg->readAllStandardError();
 }
