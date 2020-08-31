@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QFileInfo>
 #include <QDir>
+#include <QFileDialog>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -30,11 +31,15 @@ private:
 
     bool errorOccured;
 
+    static void initializeImageFileDialog(QFileDialog &dialog, QFileDialog::AcceptMode acceptMode);
+
 private slots:
     void startGenerating();
     void processOutput();
     void generateFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void defaultTemplateStateChanged(int state);
     void handleError(QProcess::ProcessError error);
+
+    void selectFileOpen();
 };
 #endif // MAINWINDOW_H

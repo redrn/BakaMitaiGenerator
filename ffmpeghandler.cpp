@@ -2,6 +2,7 @@
 #include <QStringList>
 #include <QDebug>
 #include <QFile>
+#include <QDir>
 
 FFmpegHandler::FFmpegHandler(QObject *parent) : QObject(parent)
 {
@@ -18,10 +19,10 @@ void FFmpegHandler::addTemplateSoundToSource(QString templatePath, QString sourc
 
     // Find an output file name that does not exist
     int nameIndex = 1;
-    QString output = workingDir + "\\OUTPUT.mp4";
+    QString output = workingDir + QDir::separator() + "OUTPUT.mp4";
     while(QFile::exists(output))
     {
-        output = workingDir + "\\OUTPUT_" + QString::number(nameIndex) + ".mp4";
+        output = workingDir + QDir::separator() + "OUTPUT_" + QString::number(nameIndex) + ".mp4";
         nameIndex++;
     }
 

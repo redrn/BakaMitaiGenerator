@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>522</width>
-    <height>306</height>
+    <width>692</width>
+    <height>659</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -23,8 +23,8 @@
    <widget class="QPushButton" name="generateButton">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>170</y>
+      <x>170</x>
+      <y>510</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -36,8 +36,8 @@
    <widget class="QLabel" name="drivingVideoLabel">
     <property name="geometry">
      <rect>
-      <x>80</x>
-      <y>20</y>
+      <x>110</x>
+      <y>10</y>
       <width>121</width>
       <height>16</height>
      </rect>
@@ -49,8 +49,8 @@
    <widget class="QLineEdit" name="drivingVideoInput">
     <property name="geometry">
      <rect>
-      <x>40</x>
-      <y>50</y>
+      <x>70</x>
+      <y>40</y>
       <width>191</width>
       <height>20</height>
      </rect>
@@ -59,8 +59,8 @@
    <widget class="QLabel" name="sourceImageLabel">
     <property name="geometry">
      <rect>
-      <x>320</x>
-      <y>20</y>
+      <x>430</x>
+      <y>10</y>
       <width>121</width>
       <height>20</height>
      </rect>
@@ -72,8 +72,8 @@
    <widget class="QLineEdit" name="sourceImageInput">
     <property name="geometry">
      <rect>
-      <x>280</x>
-      <y>50</y>
+      <x>390</x>
+      <y>40</y>
       <width>191</width>
       <height>20</height>
      </rect>
@@ -85,8 +85,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>170</y>
+      <x>280</x>
+      <y>510</y>
       <width>231</width>
       <height>21</height>
      </rect>
@@ -98,8 +98,8 @@
    <widget class="QLabel" name="outputDirLabel">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>130</y>
+      <x>170</x>
+      <y>470</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -111,8 +111,8 @@
    <widget class="QLineEdit" name="outputDirInput">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>130</y>
+      <x>280</x>
+      <y>470</y>
       <width>221</width>
       <height>20</height>
      </rect>
@@ -121,8 +121,8 @@
    <widget class="QCheckBox" name="defaultDrivingCheckbox">
     <property name="geometry">
      <rect>
-      <x>40</x>
-      <y>80</y>
+      <x>70</x>
+      <y>70</y>
       <width>191</width>
       <height>17</height>
      </rect>
@@ -135,8 +135,8 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>230</y>
-      <width>341</width>
+      <y>570</y>
+      <width>491</width>
       <height>41</height>
      </rect>
     </property>
@@ -191,8 +191,8 @@ Process could take a while depending on your computer's performance.</string>
    <widget class="QLabel" name="statusIndicatorLabel">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>200</y>
+      <x>170</x>
+      <y>540</y>
       <width>311</width>
       <height>16</height>
      </rect>
@@ -204,19 +204,52 @@ Process could take a while depending on your computer's performance.</string>
      <bool>true</bool>
     </property>
    </widget>
+   <widget class="QPushButton" name="selectFileButton">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>40</y>
+      <width>71</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Select</string>
+    </property>
+   </widget>
+   <widget class="ImageCropLabel" name="sourceImageViewLabel">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>100</y>
+      <width>571</width>
+      <height>351</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>522</width>
+     <width>692</width>
      <height>21</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ImageCropLabel</class>
+   <extends>QLabel</extends>
+   <header>imagecroplabel.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
  <slots>

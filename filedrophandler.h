@@ -15,6 +15,9 @@ class FileDropHandler : public QObject
 public:
     explicit FileDropHandler(QObject *parent = nullptr);
 
+signals:
+    void dropAccepted(QString filepath);
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 };

@@ -22,7 +22,9 @@ bool FileDropHandler::eventFilter(QObject *watched, QEvent *event)
         if(e->mimeData()->hasUrls())
         {
             QLineEdit *le = static_cast<QLineEdit*>(watched);
-            le->setText(e->mimeData()->urls().first().toLocalFile());
+            QString filepath = e->mimeData()->urls().first().toLocalFile();
+            le->setText(filepath);
+            emit dropAccepted(filepath);
             return true;
         }
     }

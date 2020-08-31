@@ -5,6 +5,10 @@
 #include <QDebug>
 #include <QProcess>
 #include <QCheckBox>
+#include <QStandardPaths>
+#include <QImageReader>
+#include <QImageWriter>
+#include <QPixmap>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,16 +24,24 @@ MainWindow::MainWindow(QWidget *parent)
     firstOrderModelDir = QDir("C:\\Users\\RedRN\\Documents\\DamedaneGenerator\\BatchDamedane\\first-order-model");
 
     // Connect generate button to function
-    connect(ui->generateButton, SIGNAL(clicked()), this, SLOT(startGenerating()));
+    connect(ui->generateButton, &QPushButton::clicked, this, &MainWindow::startGenerating);
 
     // Connect Use Default Template button
-    connect(ui->defaultDrivingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(defaultTemplateStateChanged(int)));
+    connect(ui->defaultDrivingCheckbox, &QCheckBox::stateChanged, this, &MainWindow::defaultTemplateStateChanged);
 
-    // Install eventFilter
+    // Connect Select File button
+    connect(ui->selectFileButton, &QPushButton::clicked, this, &MainWindow::selectFileOpen);
+
+    // Install eventFilter to accept drop event
     FileDropHandler *filter = new FileDropHandler();
     ui->drivingVideoInput->installEventFilter(filter);
     ui->sourceImageInput->installEventFilter(filter);
     ui->outputDirInput->installEventFilter(filter);
+
+    // Drop event also load image
+    connect(filter, &FileDropHandler::dropAccepted, [this](QString filepath){
+        ui->sourceImageViewLabel->loadImage(QImage(filepath));
+    });
 }
 
 void MainWindow::startGenerating()
@@ -82,7 +94,7 @@ void MainWindow::startGenerating()
          << "--config" << firstOrderModelDir.absoluteFilePath("config/vox-256.yaml")
          << "--driving_video" << drivingVideoFile.absoluteFilePath()
          << "--source_image" << sourceImageFile.absoluteFilePath()
-         << "--result_video" << workingDir.absoluteFilePath(sourceImageFile.baseName() + "_temp_deepfakemp4")
+         << "--result_video" << workingDir.absoluteFilePath(sourceImageFile.baseName() + "_temp_deepfake.mp4")
          << "--checkpoint" << firstOrderModelDir.absoluteFilePath("vox-cpk.pth.tar")
          << "--relative"
          << "--adapt_scale";
@@ -108,6 +120,7 @@ void MainWindow::processOutput()
     //FIXME: function not getting called
     if(!demo) return;
     QString output = demo->readAllStandardError().trimmed();
+    qDebug() << output;
 
     // Try to extract progress from output
     bool ok;
@@ -176,6 +189,47 @@ void MainWindow::defaultTemplateStateChanged(int state)
 
 //TODO: Add Batch Generate function
 //TODO: Add feature for cropping source image
+
+// Select file for open
+void MainWindow::selectFileOpen()
+{
+    QFileDialog dialog(this, "Select source file");
+    initializeImageFileDialog(dialog, QFileDialog::AcceptOpen);
+
+    dialog.exec();
+    if(dialog.selectedFiles().isEmpty()) return;
+
+    // Set label and FileInfo object
+    sourceImageFile = QFile(dialog.selectedFiles().first());
+    ui->sourceImageInput->setText(dialog.selectedFiles().first());
+    ui->sourceImageViewLabel->loadImage(QImage(dialog.selectedFiles().first()));
+    // Set ImageReader
+
+}
+
+// Copied from ImageViewer example from doc.qt.io
+void MainWindow::initializeImageFileDialog(QFileDialog &dialog, QFileDialog::AcceptMode acceptMode)
+{
+    static bool firstDialog = true;
+
+    if (firstDialog) {
+        firstDialog = false;
+        const QStringList picturesLocations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
+        dialog.setDirectory(picturesLocations.isEmpty() ? QDir::currentPath() : picturesLocations.last());
+    }
+
+    // Setup type filters
+    QStringList mimeTypeFilters;
+    const QByteArrayList supportedMimeTypes = acceptMode == QFileDialog::AcceptOpen
+        ? QImageReader::supportedMimeTypes() : QImageWriter::supportedMimeTypes();
+    for (const QByteArray &mimeTypeName : supportedMimeTypes)
+        mimeTypeFilters.append(mimeTypeName);
+    mimeTypeFilters.sort();
+    dialog.setMimeTypeFilters(mimeTypeFilters);
+    dialog.selectMimeTypeFilter("image/jpeg");
+    if (acceptMode == QFileDialog::AcceptSave)
+        dialog.setDefaultSuffix("jpg");
+}
 
 MainWindow::~MainWindow()
 {
