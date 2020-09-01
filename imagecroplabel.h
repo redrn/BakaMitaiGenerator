@@ -25,7 +25,8 @@ private:
     QRect selectRect;
     QImage unscaledImage;
 
-    void darkenSelection();
+    // Offset to keep the image in the center
+    QPoint imageOffset;
 
     // enum to indicate which part of the QRect
     // BEGAIN and END used as helper for iteration
@@ -45,6 +46,7 @@ private:
     };
 
     bool draging;
+    QPoint dragBodyOffset;
     // Map to store which RectPart is selected for draging
     QMap<RectPart, bool> selectedRectPart;
 

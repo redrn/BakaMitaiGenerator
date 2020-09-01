@@ -14,9 +14,10 @@ ImageCropLabel::ImageCropLabel(QWidget *parent) : QLabel(parent)
 {
     // Initialize Image Viewer
     this->setBackgroundRole(QPalette::Base);
-    //ui->sourceImageViewLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    //this->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     //this->setScaledContents(true);
     this->setAttribute(Qt::WA_Hover);
+    this->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
     draging = false;
 
@@ -35,6 +36,11 @@ void ImageCropLabel::loadImage(QImage image)
                                  Qt::KeepAspectRatio, Qt::SmoothTransformation);
     unscaledImage = unscaledImage.convertToFormat(QImage::Format_RGB32);
     unscaledImage.convertToColorSpace(QColorSpace::SRgb);
+
+    // Center the image
+    imageOffset = this->rect().center() - unscaledImage.rect().center();
+    unscaledImage.setOffset(imageOffset);
+
     this->setPixmap(QPixmap::fromImage(unscaledImage));
 
     // Create default selection rect
@@ -44,10 +50,7 @@ void ImageCropLabel::loadImage(QImage image)
         sideLength = unscaledImage.height() <= unscaledImage.width() ?
                     unscaledImage.height() : unscaledImage.width();
     selectRect = QRect(0, 0, sideLength, sideLength);
-    selectRect.moveCenter(unscaledImage.rect().center());
-
-    // Darken image enclosed by selectionRect
-    darkenSelection();
+    selectRect.moveCenter(unscaledImage.rect().center() + imageOffset);
 }
 
 // Scale image between factor [1, 199]
@@ -65,17 +68,58 @@ void ImageCropLabel::scaleImage(int value)
                                           Qt::SmoothTransformation)));
 }
 
-void ImageCropLabel::darkenSelection()
-{
-
-}
-
 void ImageCropLabel::paintEvent(QPaintEvent *event)
 {
+    // Call parent's paintEvent
     QLabel::paintEvent(event);
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
+    /* Darken unselected area */
+    // Create rects to be filled
+    QVector<QRect> rects{};
+    QRect imageRect = unscaledImage.rect();
+    // top rect
+    if(selectRect.top() - (imageRect.top() + imageOffset.y()) >= 0)
+    {
+        //qDebug() << "drawing top";
+        rects.push_back(QRect(imageRect.topLeft() + imageOffset,
+                              QPoint(imageRect.right() + imageOffset.x(),
+                                     selectRect.topRight().y())));
+    }
+    // bottom rect
+    if(imageRect.bottom() + imageOffset.y() - selectRect.bottom() >= 0)
+    {
+        //qDebug() << "drawing bottom";
+        rects.push_back(QRect(QPoint(imageOffset.x(), selectRect.bottomLeft().y()),
+                              imageRect.bottomRight() + imageOffset));
+    }
+    // left rect
+    if(selectRect.left() - (imageRect.left() + imageOffset.x()) >= 0)
+    {
+        //qDebug() << "drawing left";
+        // NOTE: top() + 1 and QPoint(0, 1) are to eliminate overlap between rects,
+        // caused by inaccurate bottom() and right() in QRect
+        rects.push_back(QRect(QPoint(imageRect.left() + imageOffset.x(), selectRect.top() + 1),
+                              selectRect.bottomLeft() - QPoint(0, 1)));
+    }
+    // right rect
+    if(imageRect.right() + imageOffset.x() - selectRect.right() >= 0)
+    {
+        // NOTE: + QPoint(0, 1) and -1 also used to eliminate overlap
+        //qDebug() << "drawing right";
+        rects.push_back(QRect(selectRect.topRight() + QPoint(0, 1),
+                              QPoint(imageRect.right() + imageOffset.x(), selectRect.bottom() - 1)));
+    }
+
+    // Fill all rects
+    std::for_each(rects.begin(), rects.end(), [&](auto r)
+    {
+        painter.fillRect(r, QColor(0, 0, 0, 0.7 * 255));
+    });
+
+    /* Draw selection rect */
     QPen pen(Qt::white, 3);
     painter.setPen(pen);
 
@@ -99,6 +143,7 @@ bool ImageCropLabel::event(QEvent *e)
     switch (e->type())
     {
     case QEvent::HoverMove:
+        qDebug() << "move";
         setDragCursor(static_cast<QHoverEvent*>(e)->pos());
         return true;
 
@@ -139,7 +184,7 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     if(QRect(selectRect.topRight() + offset,
              selectRect.bottomRight() - offset).contains(pos))
     {
-        QGuiApplication::setOverrideCursor(QCursor(Qt::SizeHorCursor));
+        this->setCursor(QCursor(Qt::SizeHorCursor));
         setUniqueTrue(RectPart::RightEdge);
         return;
     }
@@ -147,7 +192,7 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     if(QRect(selectRect.topLeft() + offset,
              selectRect.bottomLeft() - offset).contains(pos))
     {
-        QGuiApplication::setOverrideCursor(QCursor(Qt::SizeHorCursor));
+        this->setCursor(QCursor(Qt::SizeHorCursor));
         setUniqueTrue(RectPart::LeftEdge);
         return;
     }
@@ -157,7 +202,7 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     if(QRect(selectRect.topLeft() + offset,
              selectRect.topRight() - offset).contains(pos))
     {
-        QGuiApplication::setOverrideCursor(QCursor(Qt::SizeVerCursor));
+        this->setCursor(QCursor(Qt::SizeVerCursor));
         setUniqueTrue(RectPart::TopEdge);
         return;
     }
@@ -165,7 +210,7 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     if(QRect(selectRect.bottomLeft() + offset,
              selectRect.bottomRight() - offset).contains(pos))
     {
-        QGuiApplication::setOverrideCursor(QCursor(Qt::SizeVerCursor));
+        this->setCursor(QCursor(Qt::SizeVerCursor));
         setUniqueTrue(RectPart::BottomEdge);
         return;
     }
@@ -183,7 +228,7 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     {
         if(QRect(corner + offset, corner - offset).contains(pos))
         {
-            QGuiApplication::setOverrideCursor(QCursor(shape));
+            this->setCursor(QCursor(shape));
             setUniqueTrue(part);
             cursorSet = true;
         }
@@ -196,7 +241,7 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     // Body of the selectRect
     if(selectRect.contains(pos, true))
     {
-         QGuiApplication::setOverrideCursor(QCursor(Qt::SizeAllCursor));
+         this->setCursor(QCursor(Qt::SizeAllCursor));
          setUniqueTrue(RectPart::Body);
          return;
     }
@@ -204,20 +249,25 @@ void ImageCropLabel::setDragCursor(QPoint pos)
     /* if not, restore cursor override */
     if(!cursorSet)
     {
-        QGuiApplication::restoreOverrideCursor();
+        this->unsetCursor();
         // reset all to false
         for(auto itr = selectedRectPart.begin(); itr != selectedRectPart.end(); ++itr)
         {
             itr.value() = false;
         }
+        return;
         //attempted to shorten the for loop aboce into one line, failed
         //std::for_each(selectedRectPart.begin(), selectedRectPart.end(), [](auto itr){itr.value() = false;});
     }
 }
 
+
+// Mouse events to enable dragging of selectRect
 void ImageCropLabel::mousePressEvent(QMouseEvent *ev)
 {
     draging = true;
+    // Offset to keep relative position between cursor and rect center
+    dragBodyOffset = selectRect.center() - ev->pos();
 }
 
 void ImageCropLabel::mouseReleaseEvent(QMouseEvent *ev)
@@ -227,6 +277,7 @@ void ImageCropLabel::mouseReleaseEvent(QMouseEvent *ev)
 
 void ImageCropLabel::mouseMoveEvent(QMouseEvent *ev)
 {
+    // FIXME: Prevent selectRect from being dragged outside of image rect
     if(draging)
     {
         RectPart part = RectPart::BEGAIN;
@@ -260,6 +311,9 @@ void ImageCropLabel::mouseMoveEvent(QMouseEvent *ev)
             break;
         case RectPart::BLCorner:
             selectRect.setBottomLeft(ev->pos());
+            break;
+        case RectPart::Body:
+            selectRect.moveCenter(ev->pos() + dragBodyOffset);
             break;
         default:
             break;
