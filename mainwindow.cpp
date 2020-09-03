@@ -115,6 +115,7 @@ void MainWindow::startGenerating()
     connect(demo, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(generateFinished(int, QProcess::ExitStatus)));
 }
 
+// Process output from python process and display on progress bar
 void MainWindow::processOutput()
 {
     //FIXME: function not getting called

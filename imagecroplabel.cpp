@@ -143,7 +143,6 @@ bool ImageCropLabel::event(QEvent *e)
     switch (e->type())
     {
     case QEvent::HoverMove:
-        qDebug() << "move";
         setDragCursor(static_cast<QHoverEvent*>(e)->pos());
         return true;
 
@@ -267,7 +266,7 @@ void ImageCropLabel::mousePressEvent(QMouseEvent *ev)
 {
     draging = true;
     // Offset to keep relative position between cursor and rect center
-    dragBodyOffset = selectRect.center() - ev->pos();
+    dragBodyOffset = selectRect.topLeft() - ev->pos();
 }
 
 void ImageCropLabel::mouseReleaseEvent(QMouseEvent *ev)
@@ -280,40 +279,99 @@ void ImageCropLabel::mouseMoveEvent(QMouseEvent *ev)
     // FIXME: Prevent selectRect from being dragged outside of image rect
     if(draging)
     {
+        // Find the selected part
         RectPart part = RectPart::BEGAIN;
         for(auto itr = selectedRectPart.begin(); itr != selectedRectPart.end(); ++itr)
         {
             if(itr.value() == true) part = itr.key();
         }
 
+
+        /* Move selectRect
+          and prevent it from moving outside of boundary */
+        int minSize = 10;
+        int targetPos;
+        QPoint targetPoint;
+        QRect imageRect = unscaledImage.rect();
+
+        // Helper lambda to keep target pos within min and max
+        auto keepMinMax = [&](int input, int min, int max)
+        {
+            // Return input if it's within (min, max)
+            // Return min/max otherwise
+            return input < max ? (input > min ? input : min) : (max);
+        };
+
         switch(part)
         {
         case RectPart::TopEdge:
-            selectRect.setTop(ev->pos().y());
+            targetPos = keepMinMax(ev->y(),
+                                   imageRect.top() + imageOffset.y(),
+                                   selectRect.bottom() + 1 - minSize);
+            selectRect.setTop(targetPos);
             break;
         case RectPart::BottomEdge:
-            selectRect.setBottom(ev->pos().y());
+            targetPos = keepMinMax(ev->y(),
+                                   selectRect.top() + minSize,
+                                   imageRect.bottom() + 1 + imageOffset.y());
+            selectRect.setBottom(targetPos);
             break;
         case RectPart::RightEdge:
-            selectRect.setRight(ev->pos().x());
+            targetPos = keepMinMax(ev->x(),
+                                   selectRect.left() + minSize,
+                                   imageRect.right() + 1 + imageOffset.x());
+            selectRect.setRight(targetPos);
             break;
         case RectPart::LeftEdge:
-            selectRect.setLeft(ev->pos().x());
+            targetPos = keepMinMax(ev->x(),
+                                   imageRect.left() + imageOffset.x(),
+                                   selectRect.right() + 1 - minSize);
+            selectRect.setLeft(targetPos);
             break;
         case RectPart::TRCorner:
-            selectRect.setTopRight(ev->pos());
+            targetPoint = QPoint(keepMinMax(ev->x(),
+                                            selectRect.left() + minSize,
+                                            imageRect.right() + 1 + imageOffset.x()),
+                                 keepMinMax(ev->y(),
+                                            imageRect.top() + imageOffset.y(),
+                                            selectRect.bottom() + 1 - minSize));
+            selectRect.setTopRight(targetPoint);
             break;
         case RectPart::BRCorner:
-            selectRect.setBottomRight(ev->pos());
+            targetPoint = QPoint(keepMinMax(ev->x(),
+                                            selectRect.left() + minSize,
+                                            imageRect.right() + 1 + imageOffset.x()),
+                                 keepMinMax(ev->y(),
+                                            selectRect.top() + minSize,
+                                            imageRect.bottom() + 1 + imageOffset.y()));
+            selectRect.setBottomRight(targetPoint);
             break;
         case RectPart::TLCorner:
-            selectRect.setTopLeft(ev->pos());
+            targetPoint = QPoint(keepMinMax(ev->x(),
+                                            imageRect.left() + imageOffset.x(),
+                                            selectRect.right() + 1 - minSize),
+                                 keepMinMax(ev->y(),
+                                            imageRect.top() + imageOffset.y(),
+                                            selectRect.bottom() + 1 - minSize));
+            selectRect.setTopLeft(targetPoint);
             break;
         case RectPart::BLCorner:
-            selectRect.setBottomLeft(ev->pos());
+            targetPoint = QPoint(keepMinMax(ev->x(),
+                                            imageRect.left() + imageOffset.x(),
+                                            selectRect.right() + 1 - minSize),
+                                 keepMinMax(ev->y(),
+                                            selectRect.top() + minSize,
+                                            imageRect.bottom() + 1 + imageOffset.y()));
+            selectRect.setBottomLeft(targetPoint);
             break;
         case RectPart::Body:
-            selectRect.moveCenter(ev->pos() + dragBodyOffset);
+            targetPoint = QPoint(keepMinMax(ev->x() + dragBodyOffset.x(),
+                                            imageRect.left() + imageOffset.x(),
+                                            imageRect.right() + 1 + imageOffset.x() - selectRect.width()),
+                                 keepMinMax(ev->y() + dragBodyOffset.y(),
+                                            imageRect.top() + imageOffset.y(),
+                                            imageRect.bottom() + 1 + imageOffset.y() - selectRect.height()));
+            selectRect.moveTopLeft(targetPoint);
             break;
         default:
             break;
