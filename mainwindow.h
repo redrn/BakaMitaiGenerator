@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFileDialog>
+#include <QTemporaryFile>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -28,6 +29,7 @@ private:
     QDir workingDir;
     QFileInfo drivingVideoFile;
     QFileInfo sourceImageFile;
+    QTemporaryFile *generatedOutput;
 
     bool errorOccured;
 

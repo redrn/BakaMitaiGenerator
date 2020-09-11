@@ -36,9 +36,6 @@ void FFmpegHandler::addTemplateSoundToSource(QString templatePath, QString sourc
                                             << "-n" // Aborts upon output name collision
                                             << output );
     ffmpeg->waitForFinished();
-
-    // Remove source, which only serves as temporary file
-    QFile::remove(sourcePath);
 }
 
 // Error Handling

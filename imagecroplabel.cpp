@@ -8,7 +8,7 @@
 #include <QColorSpace>
 #include <QGuiApplication>
 #include <QMap>
-#include <algorithm>
+#include <QDir>
 
 ImageCropLabel::ImageCropLabel(QWidget *parent) : QLabel(parent)
 {
@@ -379,4 +379,17 @@ void ImageCropLabel::mouseMoveEvent(QMouseEvent *ev)
 
         update(); // necessary as this will call paintEvent
     }
+}
+
+QTemporaryFile *ImageCropLabel::extractSelected()
+{
+    QTemporaryFile *testFile = new QTemporaryFile(QCoreApplication::applicationName() +
+                                                  ".XXXXXX" + ".png",
+                                                  this);
+    if(testFile->open())
+    {
+        unscaledImage.copy(selectRect.translated(-imageOffset)).save(testFile);
+    }
+    qDebug() << testFile->fileName();
+    return testFile;
 }

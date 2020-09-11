@@ -6,6 +6,7 @@
 #include <QPaintEvent>
 #include <QHoverEvent>
 #include <QMouseEvent>
+#include <QTemporaryFile>
 
 class ImageCropLabel : public QLabel
 {
@@ -17,7 +18,7 @@ public:
 
 public slots:
     void scaleImage(int value);
-    //void exportToFile(QString filename);
+    QTemporaryFile *extractSelected();
 
 signals:
 

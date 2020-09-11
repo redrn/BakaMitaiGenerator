@@ -42,12 +42,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(filter, &FileDropHandler::dropAccepted, [this](QString filepath){
         ui->sourceImageViewLabel->loadImage(QImage(filepath));
     });
+
+    // Construct temporary file for output
+    generatedOutput = new QTemporaryFile(QCoreApplication::applicationName() +
+                                         ".XXXXXX" + ".mp4",
+                                         this);
 }
 
 void MainWindow::startGenerating()
 {
     // Read user input
     // Trim the string to get rid of any \r, \n or whitespaces
+    // FIXME: Need to test if entered path is valid
+    //        or I could force user to manually select using file selector
     QString drivingVideoPath = ui->drivingVideoInput->text().trimmed();
     QString sourceImagePath = ui->sourceImageInput->text().trimmed();
     QString workingDirectoryPath = ui->outputDirInput->text().trimmed();    
@@ -72,17 +79,24 @@ void MainWindow::startGenerating()
     sourceImageFile = QFileInfo(sourceImagePath);
     workingDir = QDir(workingDirectoryPath);
 
+    // Accept cropped image from image cropper
+    sourceImageFile = QFileInfo(ui->sourceImageViewLabel->extractSelected()->fileName());
+
     // Reset Indication
     ui->generateProgressBar->setValue(0);
     ui->statusIndicatorLabel->setText("Status: Generating deepfake...");
     errorOccured = false;
 
-
     // Create Process
     demo = new QProcess(this);
 
-    // Set working directory
-    demo->setWorkingDirectory(workingDirectoryPath);
+    // open temporary file to store output
+    if(!generatedOutput->open())
+    {
+        qDebug() << "Failed to create temp output file, terminating...";
+        return;
+    }
+    qDebug() << generatedOutput->fileName();
 
     // Setup python and cmd arguments
     // TODO: Use QFile system
@@ -94,7 +108,7 @@ void MainWindow::startGenerating()
          << "--config" << firstOrderModelDir.absoluteFilePath("config/vox-256.yaml")
          << "--driving_video" << drivingVideoFile.absoluteFilePath()
          << "--source_image" << sourceImageFile.absoluteFilePath()
-         << "--result_video" << workingDir.absoluteFilePath(sourceImageFile.baseName() + "_temp_deepfake.mp4")
+         << "--result_video" << generatedOutput->fileName()
          << "--checkpoint" << firstOrderModelDir.absoluteFilePath("vox-cpk.pth.tar")
          << "--relative"
          << "--adapt_scale";
@@ -116,6 +130,8 @@ void MainWindow::startGenerating()
 }
 
 // Process output from python process and display on progress bar
+// FIXME: Drag on window will halt receiving of output,
+//        could cause problem when output reached 100% before draging ends
 void MainWindow::processOutput()
 {
     //FIXME: function not getting called
@@ -146,7 +162,7 @@ void MainWindow::generateFinished(int exitCode, QProcess::ExitStatus exitStatus)
         return;
     }
 
-    QString sourcePath = workingDir.absoluteFilePath(sourceImageFile.baseName() + "_temp_deepfake.mp4");
+    QString sourcePath = generatedOutput->fileName();
 
     // Set status indicator
     ui->statusIndicatorLabel->setText(ui->statusIndicatorLabel->text() + "Done. Remuxing...");
