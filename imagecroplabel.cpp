@@ -73,6 +73,9 @@ void ImageCropLabel::paintEvent(QPaintEvent *event)
     // Call parent's paintEvent
     QLabel::paintEvent(event);
 
+    // Don't paint extra stuff if no image is loaded
+    if(unscaledImage.isNull()) return;
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 

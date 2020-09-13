@@ -87,7 +87,7 @@
      <rect>
       <x>280</x>
       <y>510</y>
-      <width>231</width>
+      <width>261</width>
       <height>21</height>
      </rect>
     </property>
@@ -113,7 +113,7 @@
      <rect>
       <x>280</x>
       <y>470</y>
-      <width>221</width>
+      <width>171</width>
       <height>20</height>
      </rect>
     </property>
@@ -221,13 +221,39 @@ Process could take a while depending on your computer's performance.</string>
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>100</y>
+      <y>110</y>
       <width>571</width>
-      <height>351</height>
+      <height>341</height>
      </rect>
     </property>
     <property name="text">
      <string/>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="selectOutputDirButton">
+    <property name="geometry">
+     <rect>
+      <x>470</x>
+      <y>470</y>
+      <width>71</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Select</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="defaultDrivingCheckbox_2">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>90</y>
+      <width>191</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Use Default Tokyo Ghoul Template</string>
     </property>
    </widget>
   </widget>
@@ -237,7 +263,7 @@ Process could take a while depending on your computer's performance.</string>
      <x>0</x>
      <y>0</y>
      <width>692</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>

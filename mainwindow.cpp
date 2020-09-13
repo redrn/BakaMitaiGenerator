@@ -31,6 +31,19 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Connect Select File button
     connect(ui->selectFileButton, &QPushButton::clicked, this, &MainWindow::selectFileOpen);
+    connect(ui->selectOutputDirButton, &QPushButton::clicked, [this]()
+    {
+        QFileDialog selector(this, "Select where the output will be stored",
+                             QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).first());
+        selector.setFileMode(QFileDialog::Directory);
+        selector.setOption(QFileDialog::ShowDirsOnly);
+
+        if(selector.exec())
+        {
+            workingDir = QDir(selector.selectedFiles().first());
+            ui->outputDirInput->setText(workingDir.path());
+        }
+    });
 
     // Install eventFilter to accept drop event
     FileDropHandler *filter = new FileDropHandler();
@@ -39,7 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->outputDirInput->installEventFilter(filter);
 
     // Drop event also load image
-    connect(filter, &FileDropHandler::dropAccepted, [this](QString filepath){
+    connect(filter, &FileDropHandler::dropAccepted, [this](QString filepath)
+    {
         ui->sourceImageViewLabel->loadImage(QImage(filepath));
     });
 
@@ -136,19 +150,25 @@ void MainWindow::processOutput()
 {
     //FIXME: function not getting called
     if(!demo) return;
-    QString output = demo->readAllStandardError().trimmed();
+    QString output = demo->readAllStandardError();
     qDebug() << output;
 
-    // Try to extract progress from output
-    bool ok;
-    output.truncate(output.indexOf("%"));
+    // Format output into StringList for each line
+    QStringList outputList = output.split("\r", Qt::SkipEmptyParts);
 
-    // Convert QString to int
-    int progress = output.toInt(&ok);
-    if(ok)
-    {
-        ui->generateProgressBar->setValue(progress);
-    }
+    // Trim each line
+    std::for_each(outputList.begin(), outputList.end(), [](auto &str) {str = str.trimmed();});
+
+    // Find the latest progress
+    // static_cast to void to silence nodiscard attribute
+    static_cast<void>(std::find_if(outputList.rbegin(), outputList.rend(), [&](auto &str){
+        // Try to extract int progress from output
+        bool ok;
+        str.truncate(str.indexOf("%"));
+        int progress = str.toInt(&ok);
+        if(ok) ui->generateProgressBar->setValue(progress);
+        return ok;
+    }));
 }
 
 
@@ -205,7 +225,6 @@ void MainWindow::defaultTemplateStateChanged(int state)
 }
 
 //TODO: Add Batch Generate function
-//TODO: Add feature for cropping source image
 
 // Select file for open
 void MainWindow::selectFileOpen()
